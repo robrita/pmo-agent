@@ -1,0 +1,91 @@
+Task,Resource,Start Date,End Date,Duration (days),Project
+"E-commerce Website Platform",Project,2025-04-01,2025-05-27,56,"E-commerce Website Platform"
+"Requirement Analysis & UI/UX Design","David Kim",2025-04-01,2025-04-14,14,"E-commerce Website Platform"
+"UI/UX Design","UI/UX Designer (New Hire)",2025-04-01,2025-04-14,14,"E-commerce Website Platform"
+"Frontend Development","Alice Johnson",2025-04-15,2025-05-12,28,"E-commerce Website Platform"
+"Frontend Development","Noah Anderson",2025-05-01,2025-05-12,12,"E-commerce Website Platform"
+"Backend Development","Mark Thompson",2025-04-15,2025-05-12,28,"E-commerce Website Platform"
+"Backend Development","Isabella Garcia",2025-05-01,2025-05-12,12,"E-commerce Website Platform"
+"Database Setup","Priya Patel",2025-04-15,2025-05-12,28,"E-commerce Website Platform"
+"DevOps & Infrastructure","Carlos Rivera",2025-05-01,2025-05-27,27,"E-commerce Website Platform"
+"Testing & QA","Emily Chen",2025-06-01,2025-06-07,7,"E-commerce Website Platform"
+"Testing & QA","Grace Wilson",2025-06-15,2025-06-21,7,"E-commerce Website Platform"
+
+"AI-Powered Customer Support Chatbot",Project,2025-05-01,2025-06-19,50,"AI-Powered Customer Support Chatbot"
+"Requirement Gathering & Planning","Oliver Brown",2025-05-01,2025-05-07,7,"AI-Powered Customer Support Chatbot"
+"AI Model Training","Sophia Martinez",2025-05-08,2025-05-21,14,"AI-Powered Customer Support Chatbot"
+"AI Model Training","Daniel Schmidt",2025-05-08,2025-05-21,14,"AI-Powered Customer Support Chatbot"
+"Backend API Development","Olivia Turner",2025-05-08,2025-05-21,14,"AI-Powered Customer Support Chatbot"
+"Frontend Integration","Jackson White",2025-05-15,2025-05-28,14,"AI-Powered Customer Support Chatbot"
+"NLP Integration","Rajesh Kumar",2025-05-10,2025-05-30,21,"AI-Powered Customer Support Chatbot"
+"DevOps & Containerization","Lucas Müller",2025-05-20,2025-06-05,17,"AI-Powered Customer Support Chatbot"
+"Testing & QA","Grace Wilson",2025-06-06,2025-06-19,14,"AI-Powered Customer Support Chatbot"
+
+"Cross-Platform Mobile Application",Project,2025-05-15,2025-06-26,43,"Cross-Platform Mobile Application"
+"Requirement Analysis & Design","Ava Robinson",2025-05-15,2025-05-21,7,"Cross-Platform Mobile Application"
+"UI/UX Design","UI/UX Designer (New Hire)",2025-05-15,2025-05-28,14,"Cross-Platform Mobile Application"
+"Mobile App Development","Ethan Davis",2025-05-22,2025-06-12,22,"Cross-Platform Mobile Application"
+"Mobile App Development","Zoe Williams",2025-06-01,2025-06-12,12,"Cross-Platform Mobile Application"
+"Backend Integration","Liam O'Connor",2025-05-22,2025-06-05,15,"Cross-Platform Mobile Application"
+"Database Setup","Amir Hassan",2025-05-22,2025-06-05,15,"Cross-Platform Mobile Application"
+"DevOps & CI/CD","Gabriel Rossi",2025-05-20,2025-06-12,24,"Cross-Platform Mobile Application"
+"Testing & QA","Hannah Lee",2025-07-01,2025-07-07,7,"Cross-Platform Mobile Application"
+
+"Real-Time Video Conferencing Web Application",Project,2025-07-01,2025-08-26,57,"Real-Time Video Conferencing Web Application"
+"Requirement Analysis","Chloe Evans",2025-07-01,2025-07-07,7,"Real-Time Video Conferencing Web Application"
+"Security Planning","Security Specialist (New Hire)",2025-07-01,2025-07-07,7,"Real-Time Video Conferencing Web Application"
+"Frontend Development","Alice Johnson",2025-07-08,2025-07-28,21,"Real-Time Video Conferencing Web Application"
+"Frontend Development","Zoe Williams",2025-07-08,2025-07-28,21,"Real-Time Video Conferencing Web Application"
+"Backend Development","Mark Thompson",2025-07-08,2025-07-28,21,"Real-Time Video Conferencing Web Application"
+"Backend Development","Mia Hernandez",2025-07-08,2025-07-28,21,"Real-Time Video Conferencing Web Application"
+"Real-Time Comm Implementation","Samuel Clark",2025-07-08,2025-07-28,21,"Real-Time Video Conferencing Web Application"
+"Security Implementation","Security Specialist (New Hire)",2025-08-01,2025-08-07,7,"Real-Time Video Conferencing Web Application"
+"DevOps & Infrastructure","Fatima Ahmed",2025-07-08,2025-08-26,50,"Real-Time Video Conferencing Web Application"
+"Testing & QA","Emily Chen",2025-08-08,2025-08-21,14,"Real-Time Video Conferencing Web Application"
+"Testing & QA","Benjamin Scott",2025-08-08,2025-08-21,14,"Real-Time Video Conferencing Web Application"
+
+"AI-Driven Recommendation Engine",Project,2025-09-01,2025-10-27,57,"AI-Driven Recommendation Engine"
+"Requirement Analysis","Henry Adams",2025-09-01,2025-09-07,7,"AI-Driven Recommendation Engine"
+"Data Pipeline Setup","Anika Sharma",2025-09-01,2025-09-20,20,"AI-Driven Recommendation Engine"
+"AI Model Development","Sophia Martinez",2025-09-08,2025-09-28,21,"AI-Driven Recommendation Engine"
+"AI Model Development","Daniel Schmidt",2025-09-08,2025-09-28,21,"AI-Driven Recommendation Engine"
+"Backend API Development","Olivia Turner",2025-09-08,2025-09-28,21,"AI-Driven Recommendation Engine"
+"Frontend Integration","Noah Anderson",2025-09-15,2025-09-28,14,"AI-Driven Recommendation Engine"
+"DevOps & Containerization","Gabriel Rossi",2025-09-15,2025-10-13,29,"AI-Driven Recommendation Engine"
+"Testing & QA","Layla King",2025-10-14,2025-10-27,14,"AI-Driven Recommendation Engine"
+
+"Resource Availability",Resource Type,Available From,Available To,Duration (days),Resource
+"Alice Johnson","Frontend Developer",2025-04-01,2025-08-30,152,Resource
+"Mark Thompson","Backend Developer",2025-04-15,2025-09-15,154,Resource
+"Priya Patel","Database Engineer",2025-04-10,2025-08-20,133,Resource
+"Carlos Rivera","DevOps Engineer",2025-05-01,2025-09-30,153,Resource
+"Emily Chen","QA Tester",2025-06-01,2025-09-15,107,Resource
+"David Kim","Project Manager",2025-04-01,2025-10-01,184,Resource
+"Sophia Martinez","AI/ML Engineer",2025-05-01,2025-10-15,168,Resource
+"Liam O'Connor","Backend Developer",2025-05-15,2025-10-30,169,Resource
+"Zoe Williams","Frontend Developer",2025-06-01,2025-09-30,122,Resource
+"Rajesh Kumar","NLP Specialist",2025-05-10,2025-10-01,145,Resource
+"Hannah Lee","QA Tester",2025-07-01,2025-10-30,122,Resource
+"Oliver Brown","Project Manager",2025-05-01,2025-11-01,185,Resource
+"Ethan Davis","Mobile Developer",2025-04-20,2025-08-30,133,Resource
+"Isabella Garcia","Backend Developer",2025-05-01,2025-09-15,138,Resource
+"Amir Hassan","Database Engineer",2025-05-10,2025-09-01,115,Resource
+"Grace Wilson","QA Tester",2025-06-15,2025-09-30,108,Resource
+"Lucas Müller","DevOps Engineer",2025-05-20,2025-10-01,135,Resource
+"Ava Robinson","Project Manager",2025-04-15,2025-10-15,184,Resource
+"Noah Anderson","Frontend Developer",2025-05-01,2025-09-30,153,Resource
+"Mia Hernandez","Backend Developer",2025-05-15,2025-10-15,154,Resource
+"Samuel Clark","Real-Time Comm. Expert",2025-05-20,2025-10-30,164,Resource
+"Fatima Ahmed","DevOps Engineer",2025-06-01,2025-11-01,154,Resource
+"Benjamin Scott","QA Tester",2025-07-01,2025-11-15,138,Resource
+"Chloe Evans","Project Manager",2025-05-01,2025-11-30,214,Resource
+"Daniel Schmidt","AI/ML Engineer",2025-04-15,2025-09-15,154,Resource
+"Olivia Turner","Backend Developer",2025-05-01,2025-10-01,154,Resource
+"Jackson White","Frontend Developer",2025-05-15,2025-09-30,139,Resource
+"Anika Sharma","Data Engineer",2025-04-20,2025-09-20,154,Resource
+"Gabriel Rossi","DevOps Engineer",2025-05-10,2025-10-15,159,Resource
+"Layla King","QA Tester",2025-06-15,2025-10-30,138,Resource
+"Henry Adams","Project Manager",2025-04-15,2025-11-01,201,Resource
+"UI/UX Designer (E-commerce)","New Hire",2025-04-01,2025-05-27,56,Resource
+"UI/UX Designer (Mobile App)","New Hire",2025-05-15,2025-06-26,43,Resource
+"Security Specialist","New Hire",2025-07-01,2025-08-26,57,Resource
