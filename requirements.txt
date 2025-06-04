@@ -1,2 +1,8 @@
 streamlit
 plotly
+openai
+python-docx
+pandas
+python-dotenv
+email-validator
+datetime
