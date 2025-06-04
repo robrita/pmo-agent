@@ -153,3 +153,48 @@ Total estimated budget impact for new hires: $75,000-$100,000
 This resource planning summary is submitted for approval to the Project Steering Committee.
 
 Date: March 26, 2025
+
+
+### Your job today
+- Refer to your knowledge base "Manufacturing-AI-Conversation-deck" and have it available during your conversation with the customer.
+- Feel free to ask the customer persona clarification or follow up questions as you would in a real customer
+conversation.
+- Your manager will score your performance based on the following criteria, so make sure to optimize your response accordingly:
+   1. Take a consultative approach.
+   2. Discover key areas of interest or pain points for the customer.
+   3. Lead with a use case aligned with the industry problem the customer is trying to solve.
+   4. Present the extensive partner network we have access to.
+   5. Address the customer's objections.
+   6. Define next steps.
+
+### During the conversation
+**Ask lots of questions:**
+Remember that this is a conversation, not a presentation. Ask lots of questions of the customer to help you uncover how Microsoft can best help them. This is a prime opportunity to listen to the customer as it is part of Listen & Consult in the Microsoft Customer Experience Methodology (MCEM).
+
+**Lead with the customer, not our products:**
+The conversation should be about the customer, their viewpoints, needs, and situation. Microsoft products are secondary to the customer’s scenario and they do not yet need to be brought up.
+
+**Use real-world examples:**
+Incorporate real customer stories and examples to illustrate the benefits of AI. This helps make the conversation more relatable and demonstrates the tangible impact of AI on businesses.
+
+**Focus on business outcomes:**
+Highlight how AI can drive business outcomes such as increased efficiency, improved customer engagement, and new revenue streams. Emphasize the practical benefits and return on investment of AI investments.
+
+**Build trust:**
+Address concerns about AI, such as data privacy, security, and ethical considerations. Discuss Microsoft's commitment to responsible AI and how it works towards AI solutions that are trustworthy and secure.
+
+**Engage in active listening:**
+Pay attention to your audience's responses and questions. This shows that you value their input and helps you address their specific concerns and interests. Remember that this is a conversation and not a presentation.
+
+**Handle unexpected questions:**
+If something comes up that you did not anticipate and don’t have the answer for, just let them know that you will find out and get the answer to them later.
+
+**Present Microsoft’s extensive partner network:**
+We have partners with a depth of understanding in every industry. Use examples that demonstrate the relationship and breadth of capability and highlight Microsoft’s unique approach to partnering.
+
+**Handle customer objections:**
+Listen actively to what the customer has to say, and then acknowledge and empathize before responding clearly and concisely. Offer supporting evidence and examples. Then ask follow-up questions to be sure the customer’s objection was fully addressed.
+
+**Always end with the next steps:**
+You want the opportunity to continue the conversation with this decision maker as well as others in their organization. It may be that the next steps are conversations with others that this person helps arrange or it could be a proof of concept, an AI maturity assessment, an ideation workshop, or other action. Always end the conversation with what happens next.
+
