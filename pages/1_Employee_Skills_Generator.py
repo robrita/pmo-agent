@@ -5,11 +5,12 @@ import os
 from openai import AzureOpenAI
 from dotenv import load_dotenv
 import re
+import sys
+sys.path.append('..')
+from utils import render_sidebar
 
 # Load environment variables
 load_dotenv()
-
-st.set_page_config(page_title="Employee Skills Generator", page_icon="👥")
 
 class SkillsGenerator:
     def __init__(self):
@@ -63,6 +64,9 @@ class SkillsGenerator:
             return "Error generating skills"
 
 def main():
+    # Render shared sidebar navigation
+    render_sidebar()
+    
     st.title("👥 Employee Skills Generator")
     st.markdown("Generate relevant skills for employees based on their job roles using AI.")
     

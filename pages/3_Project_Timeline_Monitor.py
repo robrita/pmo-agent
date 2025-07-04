@@ -9,11 +9,12 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
+import sys
+sys.path.append('..')
+from utils import render_sidebar
 
 # Load environment variables
 load_dotenv()
-
-st.set_page_config(page_title="Timeline Monitor", page_icon="⏰")
 
 class TimelineMonitor:
     def __init__(self):
@@ -93,6 +94,9 @@ class TimelineMonitor:
             return False
 
 def main():
+    # Render shared sidebar navigation
+    render_sidebar()
+    
     st.title("⏰ Project Timeline Monitor")
     st.markdown("Track project progress, monitor deadlines, and get alerts for off-track projects.")
     

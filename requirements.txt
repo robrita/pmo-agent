@@ -6,3 +6,5 @@ pandas
 python-dotenv
 email-validator
 datetime
+openpyxl
+tabulate

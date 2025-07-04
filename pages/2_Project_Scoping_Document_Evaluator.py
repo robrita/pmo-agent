@@ -6,11 +6,12 @@ from openai import AzureOpenAI
 from dotenv import load_dotenv
 from docx import Document
 import tempfile
+import sys
+sys.path.append('..')
+from utils import render_sidebar
 
 # Load environment variables
 load_dotenv()
-
-st.set_page_config(page_title="Document Evaluator", page_icon="📄")
 
 class DocumentEvaluator:
     def __init__(self):
@@ -89,6 +90,9 @@ class DocumentEvaluator:
             return None
 
 def main():
+    # Render shared sidebar navigation
+    render_sidebar()
+    
     st.title("📄 Project Scoping Document Evaluator")
     st.markdown("Analyze project scoping documents against guidelines to identify gaps and improvements.")
     

@@ -1,19 +1,15 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
+from utils import render_sidebar
 
 # Load environment variables
 load_dotenv()
 
-# Configure page
-st.set_page_config(
-    page_title="PMO Agent Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
 def main():
+    # Render shared sidebar navigation
+    render_sidebar()
+
     st.title("🚀 PMO Agent Dashboard")
     st.markdown("""
     Welcome to the PMO Agent Dashboard - your comprehensive project management operations tool.
@@ -47,21 +43,7 @@ def main():
     # Quick links
     st.markdown("---")
     st.subheader("🔗 Quick Actions")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("👥 Generate Skills", use_container_width=True):
-            st.switch_page("pages/1_Employee_Skills_Generator.py")
-    
-    with col2:
-        if st.button("📄 Evaluate Document", use_container_width=True):
-            st.switch_page("pages/2_Project_Scoping_Document_Evaluator.py")
-    
-    with col3:
-        if st.button("⏰ Monitor Timeline", use_container_width=True):
-            st.switch_page("pages/3_Project_Timeline_Monitor.py")
-    
+        
     # Configuration status
     st.markdown("---")
     st.subheader("⚙️ Configuration Status")
@@ -81,5 +63,6 @@ def main():
                - `AZURE_OPENAI_API_VERSION`
             """)
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+main()
