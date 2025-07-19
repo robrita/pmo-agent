@@ -8,3 +8,7 @@ email-validator
 datetime
 openpyxl
 tabulate
+azure-ai-projects
+azure-identity
+azure-ai-ml
+markitdown[pdf, docx, pptx, xlsx, xls]

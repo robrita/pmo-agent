@@ -56,4 +56,15 @@ def render_sidebar():
         st.image(
             "https://cdn.manilastandard.net/wp-content/uploads/2024/02/URC-Universal-Robina-Corp.jpg",
         )
-        st.write("Powered by Azure OpenAI.")
+        st.write("Powered by Azure AI Foundry.")
+
+def keep_state(state_object, state_name):
+    """
+    Keep the Streamlit session state alive across page navigations.
+    This is useful to maintain stateful data like uploaded files or user inputs.
+    """
+    if state_object:
+        st.session_state[state_name] = state_object
+    elif state_name in st.session_state:
+        return True
+    return False
