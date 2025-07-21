@@ -1,342 +1,381 @@
 # pages/3_Project_Timeline_Monitor.py
+import os
+import sys
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import os
-from dotenv import load_dotenv
-import sys
+import numpy as np
 sys.path.append('..')
-from utils import render_sidebar
+from utils import render_sidebar, keep_state
 
-# Load environment variables
-load_dotenv()
-
-class TimelineMonitor:
+class ProjectTimelineMonitor:
     def __init__(self):
-        self.today = datetime.now().date()
-    
-    def calculate_status(self, row):
-        """Calculate project status based on dates and completion"""
-        start_date = pd.to_datetime(row['Start Date']).date()
-        end_date = pd.to_datetime(row['End Date']).date()
-        completion = row['Completion %']
+        self.projects_data = {}
         
-        # Calculate expected completion based on time elapsed
-        total_days = (end_date - start_date).days
-        elapsed_days = (self.today - start_date).days
-        expected_completion = min(100, max(0, (elapsed_days / total_days) * 100))
-        
-        # Determine status
-        if self.today > end_date and completion < 100:
-            return 'Overdue', 'red'
-        elif completion < expected_completion - 15:
-            return 'Behind Schedule', 'orange'
-        elif completion >= expected_completion - 5:
-            return 'On Track', 'green'
-        else:
-            return 'At Risk', 'yellow'
+    def load_project_file(self, file, project_name):
+        """Load and process project data from CSV/Excel file"""
+        try:
+            # Read file based on extension
+            if file.name.endswith('.csv'):
+                df = pd.read_csv(file)
+            elif file.name.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(file)
+            else:
+                st.error("Unsupported file format. Please upload CSV or Excel files.")
+                return None
+                
+            # Validate required columns
+            required_columns = ['TaskID', 'TaskName', 'PlannedStart', 'PlannedEnd', 'ActualStart', 'ActualEnd']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                st.error(f"Missing required columns: {', '.join(missing_columns)}")
+                return None
+            
+            # Convert date columns to datetime
+            date_columns = ['PlannedStart', 'PlannedEnd', 'ActualStart', 'ActualEnd']
+            for col in date_columns:
+                df[col] = pd.to_datetime(df[col])
+            
+            # Calculate durations and deviations
+            df['PlannedDuration'] = (df['PlannedEnd'] - df['PlannedStart']).dt.days + 1
+            df['ActualDuration'] = (df['ActualEnd'] - df['ActualStart']).dt.days + 1
+            df['Deviation'] = df['ActualDuration'] - df['PlannedDuration']
+            df['Project'] = project_name
+            
+            # Store the processed data
+            self.projects_data[project_name] = df
+            
+            return df
+            
+        except Exception as e:
+            st.error(f"Error processing file {file.name}: {str(e)}")
+            return None
     
-    def create_timeline_chart(self, df):
-        """Create Gantt chart for project timelines"""
+    def create_gantt_chart(self, selected_projects):
+        """Create Gantt chart with baseline overlay"""
+        if not selected_projects:
+            return None
+            
+        # Combine data from selected projects
+        combined_data = []
+        for project in selected_projects:
+            if project in self.projects_data:
+                df = self.projects_data[project].copy()
+                combined_data.append(df)
+        
+        if not combined_data:
+            return None
+            
+        all_data = pd.concat(combined_data, ignore_index=True)
+        
+        # Create subplot
         fig = go.Figure()
         
-        colors = {'On Track': 'green', 'At Risk': 'orange', 'Behind Schedule': 'red', 'Overdue': 'darkred'}
+        # Color mapping for projects
+        colors = px.colors.qualitative.Set3
+        project_colors = {project: colors[i % len(colors)] for i, project in enumerate(selected_projects)}
         
-        for idx, row in df.iterrows():
-            status, color = self.calculate_status(row)
-            
-            fig.add_trace(go.Scatter(
-                x=[row['Start Date'], row['End Date']],
-                y=[row['Project Name'], row['Project Name']],
-                mode='lines+markers',
-                line=dict(color=colors.get(color, 'blue'), width=6),
-                marker=dict(size=8),
-                name=row['Project Name'],
-                hovertemplate=f"<b>{row['Project Name']}</b><br>" +
-                             f"Owner: {row['Project Owner']}<br>" +
-                             f"Status: {status}<br>" +
-                             f"Completion: {row['Completion %']}%<br>" +
-                             f"Start: {row['Start Date']}<br>" +
-                             f"End: {row['End Date']}<extra></extra>"
+        # Add planned bars (baseline)
+        for _, row in all_data.iterrows():
+            fig.add_trace(go.Bar(
+                name=f"{row['Project']} - Planned",
+                x=[row['PlannedDuration']],
+                y=[f"{row['TaskName']} ({row['Project']})"],
+                base=[row['PlannedStart']],
+                orientation='h',
+                marker=dict(
+                    color=project_colors[row['Project']],
+                    opacity=0.3,
+                    line=dict(color='black', width=1)
+                ),
+                showlegend=True if _ == 0 else False,
+                legendgroup=f"{row['Project']}-planned",
+                hovertemplate=f"<b>{row['TaskName']}</b><br>" +
+                            f"Project: {row['Project']}<br>" +
+                            f"Planned: {row['PlannedStart'].strftime('%Y-%m-%d')} to {row['PlannedEnd'].strftime('%Y-%m-%d')}<br>" +
+                            f"Duration: {row['PlannedDuration']} days<extra></extra>"
             ))
         
-        # Add today line
-        fig.add_vline(
-            x=self.today,
-            line_dash="dash",
-            line_color="black",
-            annotation_text="Today"
-        )
+        # Add actual bars
+        for _, row in all_data.iterrows():
+            fig.add_trace(go.Bar(
+                name=f"{row['Project']} - Actual",
+                x=[row['ActualDuration']],
+                y=[f"{row['TaskName']} ({row['Project']})"],
+                base=[row['ActualStart']],
+                orientation='h',
+                marker=dict(
+                    color=project_colors[row['Project']],
+                    opacity=0.8
+                ),
+                showlegend=True if _ == 0 else False,
+                legendgroup=f"{row['Project']}-actual",
+                hovertemplate=f"<b>{row['TaskName']}</b><br>" +
+                            f"Project: {row['Project']}<br>" +
+                            f"Actual: {row['ActualStart'].strftime('%Y-%m-%d')} to {row['ActualEnd'].strftime('%Y-%m-%d')}<br>" +
+                            f"Duration: {row['ActualDuration']} days<br>" +
+                            f"Deviation: {row['Deviation']:+d} days<extra></extra>"
+            ))
         
         fig.update_layout(
-            title="Project Timeline Overview",
-            xaxis_title="Date",
-            yaxis_title="Projects",
-            height=400,
-            showlegend=False
+            title="Project Timeline - Gantt Chart with Baseline Overlay",
+            xaxis_title="Timeline",
+            yaxis_title="Tasks",
+            barmode='overlay',
+            height=max(400, len(all_data) * 30),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
         )
         
         return fig
     
-    def send_notification(self, project_name, owner_email, message):
-        """Send email notification (placeholder implementation)"""
-        try:
-            # This is a placeholder - you would need to configure SMTP settings
-            st.success(f"📧 Notification sent to {owner_email} for project '{project_name}'")
-            return True
-        except Exception as e:
-            st.error(f"Failed to send notification: {str(e)}")
-            return False
+    def create_deviation_chart(self, selected_projects):
+        """Create timeline deviation chart"""
+        if not selected_projects:
+            return None
+            
+        # Combine data from selected projects
+        combined_data = []
+        for project in selected_projects:
+            if project in self.projects_data:
+                df = self.projects_data[project].copy()
+                combined_data.append(df)
+        
+        if not combined_data:
+            return None
+            
+        all_data = pd.concat(combined_data, ignore_index=True)
+        
+        # Create bar chart for deviations
+        fig = go.Figure()
+        
+        # Color bars based on deviation (red for delays, green for early completion)
+        colors = ['red' if x > 0 else 'green' if x < 0 else 'gray' for x in all_data['Deviation']]
+        
+        fig.add_trace(go.Bar(
+            x=all_data['Deviation'],
+            y=[f"{row['TaskName']} ({row['Project']})" for _, row in all_data.iterrows()],
+            orientation='h',
+            marker=dict(color=colors),
+            text=[f"{dev:+d}" for dev in all_data['Deviation']],
+            textposition='outside',
+            hovertemplate="<b>%{y}</b><br>" +
+                        "Deviation: %{x} days<br>" +
+                        "Planned Duration: %{customdata[0]} days<br>" +
+                        "Actual Duration: %{customdata[1]} days<extra></extra>",
+            customdata=list(zip(all_data['PlannedDuration'], all_data['ActualDuration']))
+        ))
+        
+        # Add vertical line at x=0
+        fig.add_vline(x=0, line_dash="dash", line_color="black", opacity=0.5)
+        
+        fig.update_layout(
+            title="Timeline Deviation Analysis",
+            xaxis_title="Deviation (days)",
+            yaxis_title="Tasks",
+            height=max(400, len(all_data) * 30),
+            annotations=[
+                dict(
+                    x=0.02, y=0.98,
+                    xref="paper", yref="paper",
+                    text="🔴 Red: Delayed | 🟢 Green: Early | ⚫ Gray: On Time",
+                    showarrow=False,
+                    font=dict(size=10),
+                    bgcolor="white",
+                    bordercolor="black",
+                    borderwidth=1
+                )
+            ]
+        )
+        
+        return fig
+    
+    def get_project_summary(self, project_name):
+        """Get summary statistics for a project"""
+        if project_name not in self.projects_data:
+            return None
+            
+        df = self.projects_data[project_name]
+        
+        total_tasks = len(df)
+        delayed_tasks = len(df[df['Deviation'] > 0])
+        early_tasks = len(df[df['Deviation'] < 0])
+        on_time_tasks = len(df[df['Deviation'] == 0])
+        
+        avg_deviation = df['Deviation'].mean()
+        total_story_points = df['StoryPoints'].sum() if 'StoryPoints' in df.columns else 0
+        
+        return {
+            'total_tasks': total_tasks,
+            'delayed_tasks': delayed_tasks,
+            'early_tasks': early_tasks,
+            'on_time_tasks': on_time_tasks,
+            'avg_deviation': avg_deviation,
+            'total_story_points': total_story_points
+        }
 
 def main():
     # Render shared sidebar navigation
     render_sidebar()
     
-    st.title("⏰ Project Timeline Monitor")
-    st.markdown("Track project progress, monitor deadlines, and get alerts for off-track projects.")
+    st.title("⏱️ Project Timeline Monitor")
+    st.markdown("Monitor project timelines, track deviations, and visualize progress with Gantt charts and deviation analysis.")
     
     # Initialize monitor
-    monitor = TimelineMonitor()
+    monitor = ProjectTimelineMonitor()
     
-    # Data input options
-    st.subheader("📊 Project Data Input")
+    # Initialize session state for projects
+    if 'uploaded_projects' not in st.session_state:
+        st.session_state.uploaded_projects = {}
     
-    input_method = st.radio(
-        "Choose input method:",
-        ["Upload CSV File", "Manual Entry", "Use Sample Data"]
+    container1 = st.container(border=True, key="upload_container")
+    
+    # File upload section
+    container1.subheader("📁 Upload Project Data")
+    
+    uploaded_files = container1.file_uploader(
+        "Upload Project Timeline Data (CSV/Excel)",
+        type=["csv", "xlsx", "xls"],
+        accept_multiple_files=True,
+        key="project_files",
+        help="Upload CSV or Excel files containing project timeline data"
     )
     
-    df = None
+    # Process uploaded files
+    if uploaded_files:
+        for file in uploaded_files:
+            # Use filename (without extension) as project name
+            project_name = file.name.rsplit('.', 1)[0]
+            
+            if project_name not in st.session_state.uploaded_projects:
+                df = monitor.load_project_file(file, project_name)
+                if df is not None:
+                    st.session_state.uploaded_projects[project_name] = df
+                    container1.success(f"✅ Loaded project: {project_name}")
     
-    if input_method == "Upload CSV File":
-        uploaded_file = st.file_uploader(
-            "Upload project timeline CSV",
-            type=['csv'],
-            help="CSV should contain columns: Project Name, Project Owner, Owner Email, Start Date, End Date, Completion %"
+    # Load existing projects into monitor
+    for project_name, df in st.session_state.uploaded_projects.items():
+        monitor.projects_data[project_name] = df
+    
+    # Show example or help
+    with container1.expander("ℹ️ How this tool works?"):
+        st.markdown("""
+        ### How to Use the Timeline Monitor:
+        
+        1. **Upload Project Data**: Upload CSV or Excel files containing project timeline data
+        2. **Select Projects**: Choose which projects to analyze in the charts
+        3. **Click 'Show Charts'**: Generate Gantt chart and deviation analysis
+        
+        ### Required Data Format:
+        Your files should contain these columns:
+        - `TaskID`: Unique identifier for each task
+        - `TaskName`: Name/description of the task
+        - `PlannedStart`: Planned start date (YYYY-MM-DD)
+        - `PlannedEnd`: Planned end date (YYYY-MM-DD)
+        - `ActualStart`: Actual start date (YYYY-MM-DD)
+        - `ActualEnd`: Actual end date (YYYY-MM-DD)
+        - `StoryPoints`: (Optional) Story points for the task
+        - `Sprint`: (Optional) Sprint number
+        
+        ### What You'll Get:
+        - **Gantt Chart**: Visual timeline with planned vs actual dates
+        - **Deviation Analysis**: Chart showing task delays and early completions
+        - **Project Statistics**: Summary metrics for each project
+        """)
+    
+    # Project selection and analysis
+    if st.session_state.uploaded_projects:
+        st.subheader("📊 Project Analysis")
+        
+        # Project selection
+        available_projects = list(st.session_state.uploaded_projects.keys())
+        selected_projects = st.multiselect(
+            "Select Projects to Analyze",
+            available_projects,
+            default=available_projects,
+            help="Choose one or more projects to include in the charts"
         )
         
-        if uploaded_file:
-            try:
-                df = pd.read_csv(uploaded_file)
-                st.success("✅ File uploaded successfully!")
-            except Exception as e:
-                st.error(f"Error reading file: {str(e)}")
-    
-    elif input_method == "Manual Entry":
-        st.markdown("**Add Project Details:**")
+        # Show project summaries
+        if selected_projects:
+            st.subheader("📈 Project Statistics")
+            cols = st.columns(len(selected_projects))
+            
+            for i, project in enumerate(selected_projects):
+                with cols[i]:
+                    summary = monitor.get_project_summary(project)
+                    if summary:
+                        st.metric(f"**{project}**", "")
+                        st.write(f"📋 Total Tasks: {summary['total_tasks']}")
+                        st.write(f"🔴 Delayed: {summary['delayed_tasks']}")
+                        st.write(f"🟢 Early: {summary['early_tasks']}")
+                        st.write(f"⚫ On Time: {summary['on_time_tasks']}")
+                        st.write(f"📊 Avg Deviation: {summary['avg_deviation']:.1f} days")
+                        if summary['total_story_points'] > 0:
+                            st.write(f"⭐ Story Points: {summary['total_story_points']}")
         
-        with st.form("project_form"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                project_name = st.text_input("Project Name")
-                project_owner = st.text_input("Project Owner")
-                owner_email = st.email_input("Owner Email")
-            
-            with col2:
-                start_date = st.date_input("Start Date")
-                end_date = st.date_input("End Date")
-                completion = st.slider("Completion %", 0, 100, 0)
-            
-            if st.form_submit_button("Add Project"):
-                # Initialize session state for projects if it doesn't exist
-                if 'projects' not in st.session_state:
-                    st.session_state.projects = []
+        # Chart generation
+        if st.button("📊 Show Charts", type="primary", disabled=not selected_projects):
+            with st.spinner("Generating charts..."):
+                # Create Gantt chart
+                gantt_fig = monitor.create_gantt_chart(selected_projects)
+                if gantt_fig:
+                    st.plotly_chart(gantt_fig, use_container_width=True)
                 
-                # Add project to session state
-                st.session_state.projects.append({
-                    'Project Name': project_name,
-                    'Project Owner': project_owner,
-                    'Owner Email': owner_email,
-                    'Start Date': start_date,
-                    'End Date': end_date,
-                    'Completion %': completion
-                })
+                # Create deviation chart
+                deviation_fig = monitor.create_deviation_chart(selected_projects)
+                if deviation_fig:
+                    st.plotly_chart(deviation_fig, use_container_width=True)
                 
-                st.success(f"Project '{project_name}' added!")
+                st.success("✅ Charts generated successfully!")
         
-        # Display current projects
-        if 'projects' in st.session_state and st.session_state.projects:
-            df = pd.DataFrame(st.session_state.projects)
-    
-    else:  # Use Sample Data
-        # Create sample data
-        sample_data = {
-            'Project Name': [
-                'Website Redesign',
-                'Mobile App Development',
-                'Database Migration',
-                'Security Audit',
-                'API Integration',
-                'Cloud Migration'
-            ],
-            'Project Owner': [
-                'Alice Johnson',
-                'Bob Smith',
-                'Carol Davis',
-                'David Wilson',
-                'Eva Brown',
-                'Frank Miller'
-            ],
-            'Owner Email': [
-                'alice@company.com',
-                'bob@company.com',
-                'carol@company.com',
-                'david@company.com',
-                'eva@company.com',
-                'frank@company.com'
-            ],
-            'Start Date': [
-                datetime.now().date() - timedelta(days=30),
-                datetime.now().date() - timedelta(days=45),
-                datetime.now().date() - timedelta(days=60),
-                datetime.now().date() - timedelta(days=15),
-                datetime.now().date() - timedelta(days=20),
-                datetime.now().date() - timedelta(days=10)
-            ],
-            'End Date': [
-                datetime.now().date() + timedelta(days=30),
-                datetime.now().date() + timedelta(days=15),
-                datetime.now().date() - timedelta(days=5),  # Overdue
-                datetime.now().date() + timedelta(days=45),
-                datetime.now().date() + timedelta(days=25),
-                datetime.now().date() + timedelta(days=50)
-            ],
-            'Completion %': [75, 60, 85, 40, 30, 20]
-        }
-        df = pd.DataFrame(sample_data)
-        st.info("📋 Using sample project data for demonstration")
-    
-    # Process and display data
-    if df is not None and not df.empty:
-        st.subheader("📈 Project Dashboard")
-        
-        # Calculate statuses
-        status_data = []
-        for idx, row in df.iterrows():
-            status, color = monitor.calculate_status(row)
-            status_data.append({
-                'Project': row['Project Name'],
-                'Owner': row['Project Owner'],
-                'Status': status,
-                'Completion': row['Completion %'],
-                'Start': row['Start Date'],
-                'End': row['End Date'],
-                'Color': color
-            })
-        
-        status_df = pd.DataFrame(status_data)
-        
-        # Summary metrics
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            total_projects = len(status_df)
-            st.metric("Total Projects", total_projects)
-        
-        with col2:
-            on_track = len(status_df[status_df['Status'] == 'On Track'])
-            st.metric("On Track", on_track, f"{(on_track/total_projects*100):.0f}%")
-        
-        with col3:
-            at_risk = len(status_df[status_df['Status'].isin(['At Risk', 'Behind Schedule'])])
-            st.metric("At Risk", at_risk, f"{(at_risk/total_projects*100):.0f}%")
-        
-        with col4:
-            overdue = len(status_df[status_df['Status'] == 'Overdue'])
-            st.metric("Overdue", overdue, f"{(overdue/total_projects*100):.0f}%")
-        
-        # Timeline visualization
-        st.subheader("📊 Timeline Visualization")
-        timeline_chart = monitor.create_timeline_chart(df)
-        st.plotly_chart(timeline_chart, use_container_width=True)
-        
-        # Status table
-        st.subheader("📋 Project Status Details")
-        
-        # Color code the status column
-        def color_status(val):
-            color_map = {
-                'On Track': 'background-color: #d4edda; color: #155724',
-                'At Risk': 'background-color: #fff3cd; color: #856404',
-                'Behind Schedule': 'background-color: #f8d7da; color: #721c24',
-                'Overdue': 'background-color: #f5c6cb; color: #721c24'
-            }
-            return color_map.get(val, '')
-        
-        styled_df = status_df[['Project', 'Owner', 'Status', 'Completion', 'Start', 'End']].style.applymap(
-            color_status, subset=['Status']
-        )
-        
-        st.dataframe(styled_df, use_container_width=True)
-        
-        # Notification section
-        st.subheader("📧 Notifications")
-        
-        # Find projects that need attention
-        attention_projects = status_df[status_df['Status'].isin(['Behind Schedule', 'Overdue', 'At Risk'])]
-        
-        if not attention_projects.empty:
-            st.warning(f"⚠️ {len(attention_projects)} project(s) need attention!")
+        # Data preview section
+        if selected_projects:
+            st.subheader("📋 Data Preview")
             
-            for idx, project in attention_projects.iterrows():
-                with st.expander(f"🚨 {project['Project']} - {project['Status']}"):
-                    st.write(f"**Owner:** {project['Owner']}")
-                    st.write(f"**Completion:** {project['Completion']}%")
-                    st.write(f"**End Date:** {project['End']}")
+            for project in selected_projects:
+                with st.expander(f"View data for {project}"):
+                    df = st.session_state.uploaded_projects[project]
                     
-                    if st.button(f"Send Alert to {project['Owner']}", key=f"alert_{idx}"):
-                        # Get owner email from original dataframe
-                        owner_email = df[df['Project Name'] == project['Project']]['Owner Email'].iloc[0]
-                        message = f"Your project '{project['Project']}' is {project['Status'].lower()}. Please review and update status."
-                        monitor.send_notification(project['Project'], owner_email, message)
-        
-        else:
-            st.success("✅ All projects are on track!")
-        
-        # Export options
-        st.subheader("📥 Export Data")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            csv_data = status_df.to_csv(index=False)
-            st.download_button(
-                label="📊 Download Status Report",
-                data=csv_data,
-                file_name=f"project_status_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
-        
-        with col2:
-            if st.button("🔄 Refresh Data"):
-                st.rerun()
+                    # Display summary metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total Tasks", len(df))
+                    with col2:
+                        avg_planned = df['PlannedDuration'].mean()
+                        st.metric("Avg Planned Duration", f"{avg_planned:.1f} days")
+                    with col3:
+                        avg_actual = df['ActualDuration'].mean()
+                        st.metric("Avg Actual Duration", f"{avg_actual:.1f} days")
+                    with col4:
+                        avg_dev = df['Deviation'].mean()
+                        st.metric("Avg Deviation", f"{avg_dev:+.1f} days")
+                    
+                    # Display data table
+                    display_columns = ['TaskID', 'TaskName', 'PlannedStart', 'PlannedEnd', 
+                                     'ActualStart', 'ActualEnd', 'PlannedDuration', 
+                                     'ActualDuration', 'Deviation']
+                    
+                    if 'StoryPoints' in df.columns:
+                        display_columns.insert(-3, 'StoryPoints')
+                    
+                    st.dataframe(
+                        df[display_columns],
+                        use_container_width=True,
+                        hide_index=True
+                    )
     
     else:
-        st.info("👆 Please provide project data to start monitoring.")
-        
-        # Help section
-        with st.expander("ℹ️ CSV Format Requirements"):
-            st.markdown("""
-            ### Required CSV Columns:
-            - **Project Name**: Name of the project
-            - **Project Owner**: Person responsible for the project
-            - **Owner Email**: Email address for notifications
-            - **Start Date**: Project start date (YYYY-MM-DD format)
-            - **End Date**: Project end date (YYYY-MM-DD format)
-            - **Completion %**: Current completion percentage (0-100)
-            
-            ### Example CSV Content:
-            ```
-            Project Name,Project Owner,Owner Email,Start Date,End Date,Completion %
-            Website Redesign,Alice Johnson,alice@company.com,2024-01-01,2024-03-01,75
-            Mobile App,Bob Smith,bob@company.com,2024-02-01,2024-05-01,60
-            ```
-            """)
+        st.info("👆 Upload project timeline data files to get started!")
 
 if __name__ == "__main__":
     main()
