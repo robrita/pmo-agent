@@ -12,9 +12,21 @@ import {
 import { version } from "@microsoft/agents-hosting/package.json";
 import feedbackCard from "./adaptiveCards/feedback.json";
 import tableCard from "./adaptiveCards/table.json";
+import { callAzureOpenAIStream } from "./openai";
+
+interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+interface ConversationData {
+  user_id: string;
+  messages: ChatMessage[];
+}
 
 interface ConversationState {
   count: number;
+  chatCache?: Record<string, ConversationData>;
 }
 type ApplicationTurnState = TurnState<ConversationState>;
 
@@ -30,6 +42,8 @@ export const teamsBot = new AgentApplication<ApplicationTurnState>({
 // Listen for user to say '/reset' and then delete conversation state
 teamsBot.message("/reset", async (context: TurnContext, state: ApplicationTurnState) => {
   state.deleteConversationState();
+  // Reinitialize the chatCache after clearing state
+  state.conversation.chatCache = {};
   await context.sendActivity("Ok I've deleted the current conversation state.");
 });
 
@@ -57,12 +71,12 @@ teamsBot.message("/runtime", async (context: TurnContext, state: ApplicationTurn
 });
 
 teamsBot.message("/typing", async (context: TurnContext, state: ApplicationTurnState) => {
-  const activity = MessageFactory.text("typing...");
+  const activity = MessageFactory.text("Thinking...");
   activity.type = ActivityTypes.Typing;
   await context.sendActivity(activity);
 
   await new Promise((resolve) => setTimeout(resolve, 5000));
-  await context.sendActivity(`and that's 5 sec typing...`);
+  await context.sendActivity(`and that's 5 sec Thinking...`);
 });
 
 teamsBot.message("/md1", async (context: TurnContext, state: ApplicationTurnState) => {
@@ -141,9 +155,7 @@ _italic text_
   });
 
   const activity = MessageFactory.attachment(CardFactory.adaptiveCard(cardJson));
-  if (cardJson) {
-    await context.sendActivity(activity);
-  }
+  await context.sendActivity(activity);
 });
 
 teamsBot.message("/table", async (context: TurnContext, state: ApplicationTurnState) => {
@@ -172,16 +184,14 @@ _italic text_
   });
 
   const activity = MessageFactory.attachment(CardFactory.adaptiveCard(cardJson));
-  if (cardJson) {
-    await context.sendActivity(activity);
-  }
+  await context.sendActivity(activity);
 });
 
 teamsBot.message("/stream1", async (context: TurnContext, state: ApplicationTurnState) => {
   const info = `Retrieval-Augmented Generation (RAG) is an AI architecture that enhances the capabilities of generative models by integrating a retrieval mechanism that fetches relevant external documents or data in response to a user query. This retrieved information is then used as context for the generative model to produce more accurate, relevant, and up-to-date responses. By grounding outputs in real-world data, RAG significantly reduces hallucinations and improves factual reliability, making it ideal for applications like customer support, legal research, healthcare Q&A, enterprise knowledge management, and academic summarization.`;
   
   // Send initial message
-  const initialMessage = MessageFactory.text("typing...");
+  const initialMessage = MessageFactory.text("Thinking...");
   const sentActivity = await context.sendActivity(initialMessage);
   
   // Loop through each word in the paragraph and update the sent message
@@ -201,9 +211,7 @@ teamsBot.message("/stream1", async (context: TurnContext, state: ApplicationTurn
     const updatedActivity = MessageFactory.attachment(CardFactory.adaptiveCard(cardJson));
     updatedActivity.id = sentActivity.id;
 
-    if (cardJson) {
-      await context.updateActivity(updatedActivity);
-    }
+    await context.updateActivity(updatedActivity);
   }
 });
 
@@ -259,7 +267,7 @@ _italic text_
 `;
   
   // Send initial message
-  const initialMessage = MessageFactory.text("typing...");
+  const initialMessage = MessageFactory.text("Thinking...");
   const sentActivity = await context.sendActivity(initialMessage);
   
   // Loop through each word in the paragraph and update the sent message
@@ -268,22 +276,14 @@ _italic text_
   
   for (const word of words) {
     accumulatedText += (accumulatedText ? " " : "") + word;
-    
-    const cardJson = new ACData.Template(feedbackCard).expand({
-      $root: {
-        body: accumulatedText,
-      },
-    });
 
     // Create updated activity with accumulated text
     const updatedActivity = MessageFactory.text(accumulatedText);
     updatedActivity.id = sentActivity.id;
 
-    if (cardJson) {
-      await context.updateActivity(updatedActivity);
-      // add 100ms delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    await context.updateActivity(updatedActivity);
+    // add 100ms delay
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   // After the loop, send the final message with the full text and table
@@ -296,14 +296,83 @@ _italic text_
   const updatedActivity = MessageFactory.attachment(CardFactory.adaptiveCard(cardJson));
   updatedActivity.id = sentActivity.id;
 
-  if (cardJson) {
-    await context.updateActivity(updatedActivity);
+  await context.updateActivity(updatedActivity);
+});
+
+teamsBot.message("/openai", async (context: TurnContext, state: ApplicationTurnState) => {
+  // Extract user message from the activity text, removing the "/openai" command
+  const userMessage = context.activity.text?.replace("/openai", "").trim() || "Hello, how can you help me?";
+
+  // Initialize chatCache if it doesn't exist
+  if (!state.conversation.chatCache) {
+    state.conversation.chatCache = {};
+  }
+
+  // Fetch the current cached messages
+  const conversationId = context.activity.conversation?.id || "default";
+  const chatCache = state.conversation.chatCache[conversationId] || { 
+    user_id: context.activity.from?.id || "unknown", 
+    messages: [] 
+  };
+  
+  const messages: ChatMessage[] = [{ role: "system", content: "You are a helpful assistant." }];
+
+  // Append chatCache.messages
+  messages.push(...chatCache.messages);
+  messages.push({ role: "user", content: userMessage });
+
+  try {
+    // Send initial message
+    const initialMessage = MessageFactory.text("Thinking...");
+    const sentActivity = await context.sendActivity(initialMessage);
+    
+    let accumulatedText = "";
+    
+    // Stream the response from Azure OpenAI
+    for await (const chunk of callAzureOpenAIStream(messages)) {
+      accumulatedText += chunk;
+      const cardJson = new ACData.Template(feedbackCard).expand({
+        $root: {
+          body: accumulatedText,
+        },
+      });
+
+      // Update the message with the adaptive card
+      const updatedActivity = MessageFactory.attachment(CardFactory.adaptiveCard(cardJson));
+      updatedActivity.id = sentActivity.id;
+
+      await context.updateActivity(updatedActivity);
+    }
+
+    // Update chat cache with assistant response
+    const updatedMessages = [...chatCache.messages];
+    updatedMessages.push({ role: "user", content: userMessage });
+    updatedMessages.push({ role: "assistant", content: accumulatedText });
+    
+    // Trim the array to keep the last 10 messages (excluding system message)
+    const trimmedMessages = updatedMessages.slice(-10);
+    
+    // Update the chat cache in state
+    state.conversation.chatCache[conversationId] = {
+      user_id: context.activity.from?.id || "unknown",
+      messages: trimmedMessages
+    };
+    // console.log("Updated chat cache:", state.conversation.chatCache);
+
+  } catch (error) {
+    console.error("Error in /openai handler:", error);
+    await context.sendActivity("Sorry, I encountered an error while processing your streaming OpenAI request.");
   }
 });
 
 teamsBot.conversationUpdate(
   "membersAdded",
   async (context: TurnContext, state: ApplicationTurnState) => {
+    // Initialize conversation state if needed
+    if (!state.conversation.chatCache) {
+      state.conversation.chatCache = {};
+    }
+    
     await context.sendActivity(
       `Hi there! I'm an echo bot running on Agents SDK version ${version} that will echo what you said to me.`
     );
@@ -314,6 +383,11 @@ teamsBot.conversationUpdate(
 teamsBot.activity(
   ActivityTypes.Message,
   async (context: TurnContext, state: ApplicationTurnState) => {
+    // Initialize conversation state if needed
+    if (!state.conversation.chatCache) {
+      state.conversation.chatCache = {};
+    }
+
     // Increment count state
     let count = state.conversation.count ?? 0;
     state.conversation.count = ++count;
@@ -327,9 +401,7 @@ teamsBot.activity(
       },
     });
 
-    if (cardJson) {
-      await context.sendActivity(MessageFactory.attachment(CardFactory.adaptiveCard(cardJson)));
-    }
+    await context.sendActivity(MessageFactory.attachment(CardFactory.adaptiveCard(cardJson)));
   }
 );
 
