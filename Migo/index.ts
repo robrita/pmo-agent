@@ -21,7 +21,7 @@ const onTurnErrorHandler = async (context: TurnContext, error: Error) => {
   // This check writes out errors to console log .vs. app insights.
   // NOTE: In production environment, you should consider logging this to Azure
   //       application insights.
-  console.error(`\n [onTurnError] unhandled error: ${error}`);
+  // console.error(`\n [onTurnError] unhandled error: ${error}`);
 
   // Only send error message for user messages, not for other message types so the bot doesn't spam a channel or chat.
   if (context.activity.type === "message") {
@@ -49,9 +49,27 @@ server.use(authorizeJWT(authConfig));
 
 // Listen for incoming requests.
 server.post("/api/messages", async (req: Request, res: Response) => {
-  await adapter.process(req, res, async (context) => {
-    await teamsBot.run(context);
-  });
+  try {
+    await adapter.process(req, res, async (context) => {
+      await teamsBot.run(context);
+    });
+  } catch (error) {
+    console.error(`Error processing message: ${error}`);
+    
+    // Send generic error message to user
+    try {
+      await adapter.process(req, res, async (context) => {
+        await context.sendActivity("Sorry, I encountered an error while processing your message. Please try again.");
+      });
+    } catch (sendError) {
+      console.error(`Error sending error message: ${sendError}`);
+    }
+    
+    // Send 500 status code
+    if (!res.headersSent) {
+      res.status(500).send("Internal Server Error");
+    }
+  }
 });
 
 // Start the server

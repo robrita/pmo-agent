@@ -1,0 +1,56 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "${body}",
+      "wrap": true
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            { "type": "TextBlock", "text": "Use Case", "weight": "Bolder" },
+            { "type": "TextBlock", "text": "Customer Support" },
+            { "type": "TextBlock", "text": "Legal/Compliance Search" },
+            { "type": "TextBlock", "text": "Healthcare Q&A" },
+            { "type": "TextBlock", "text": "Enterprise Knowledge Base" },
+            { "type": "TextBlock", "text": "Research Assistants" }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            { "type": "TextBlock", "text": "Benefit of RAG", "weight": "Bolder" },
+            { "type": "TextBlock", "text": "Answers grounded in company documentation" },
+            { "type": "TextBlock", "text": "Accurate retrieval from legal texts" },
+            { "type": "TextBlock", "text": "Contextual responses based on medical literature" },
+            { "type": "TextBlock", "text": "Real-time access to internal documents" },
+            { "type": "TextBlock", "text": "Summarizing and citing academic papers" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.Submit",
+          "iconUrl": "icon:ThumbLike",
+          "title": "👍"
+        },
+        {
+          "type": "Action.Submit",
+          "iconUrl": "icon:ThumbDislike",
+          "title": "👎"
+        }
+      ]
+    }
+  ]
+}
