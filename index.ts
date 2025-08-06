@@ -21,7 +21,15 @@ const onTurnErrorHandler = async (context: TurnContext, error: Error) => {
   // This check writes out errors to console log .vs. app insights.
   // NOTE: In production environment, you should consider logging this to Azure
   //       application insights.
-  console.error(`\n [onTurnError] unhandled error: ${error}`);
+  const timestamp = new Date().toISOString();
+  const conversationId = context.activity.conversation?.id;
+  const userId = context.activity.from?.id;
+  
+  console.error(`\n[${timestamp}] [onTurnError] Unhandled error in conversation ${conversationId} for user ${userId}`);
+  console.error(`[${timestamp}] Error message: ${error.message}`);
+  console.error(`[${timestamp}] Error stack: ${error.stack}`);
+  console.error(`[${timestamp}] Activity type: ${context.activity.type}`);
+  console.error(`[${timestamp}] Activity text: ${context.activity.text}`);
 
   // Only send error message for user messages, not for other message types so the bot doesn't spam a channel or chat.
   if (context.activity.type === "message") {
@@ -49,12 +57,28 @@ server.use(authorizeJWT(authConfig));
 
 // Listen for incoming requests.
 server.post("/api/messages", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   try {
+    // Enhanced incoming request logging
+    console.log(`[${requestId}] Incoming request: ${JSON.stringify(req.body)}`);
+    console.log(`[${requestId}] Headers: ${JSON.stringify(req.headers)}`);
+    console.log(`[${requestId}] User-Agent: ${req.headers['user-agent']}`);
+
     await adapter.process(req, res, async (context) => {
+      console.log(`[${requestId}] Processing with context - Activity Type: ${context.activity.type}, From: ${context.activity.from?.name || context.activity.from?.id}`);
       await teamsBot.run(context);
+      console.log(`[${requestId}] Bot processing completed successfully`);
     });
+
+    const duration = Date.now() - startTime;
+    console.log(`[${requestId}] Request completed in ${duration}ms`);
+
   } catch (error) {
-    console.error(`Error processing message: ${error}`);
+    const duration = Date.now() - startTime;
+    console.error(`[${requestId}] Error processing message after ${duration}ms: ${error}`);
+    console.error(`[${requestId}] Error stack: ${error.stack}`);
     
     // Send generic error message to user
     try {
