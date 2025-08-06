@@ -11,4 +11,5 @@ tabulate
 azure-ai-projects
 azure-identity
 azure-ai-ml
+azure-cosmos
 markitdown[pdf, docx, pptx, xlsx, xls]

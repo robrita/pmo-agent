@@ -6,8 +6,9 @@ from markitdown import MarkItDown
 from io import BytesIO
 import requests
 import time
+from datetime import datetime
 sys.path.append('..')
-from utils import render_sidebar, keep_state
+from utils import render_sidebar, keep_state, get_cosmos_client
 
 from azure.ai.agents import AgentsClient
 from azure.identity import DefaultAzureCredential
@@ -240,6 +241,44 @@ class DocumentParser:
             st.error(f"Error parsing document: {str(e)}")
             return None
 
+    def save_to_cosmosdb(self, parsed_content, file_name):
+        """Save parsed document content to CosmosDB"""
+        try:
+            # Get CosmosDB container client for 'scoping' container
+            container_client = get_cosmos_client('scoping')
+            if not container_client:
+                st.error("Failed to connect to CosmosDB")
+                return False
+            
+            # Parse the JSON content to extract sections
+            try:
+                parsed_json = json.loads(parsed_content)
+                sections = parsed_json.get('sections', [])
+            except json.JSONDecodeError:
+                st.error("Invalid JSON format in parsed content")
+                return False
+            
+            if not sections:
+                st.warning("No sections found in parsed content")
+                return False
+            
+            # Prepare the document to save
+            document = {
+                "id": f"doc_{int(datetime.now().timestamp())}_{hash(file_name) % 10000}",
+                "file_name": file_name,
+                "sections": sections,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Save to CosmosDB
+            container_client.create_item(document)
+            st.success(f"✅ Document saved to CosmosDB with ID: {document['id']}")
+            return True
+            
+        except Exception as e:
+            st.error(f"Error saving to CosmosDB: {str(e)}")
+            return False
+
 def main():
     # Render shared sidebar navigation
     render_sidebar()
@@ -298,7 +337,8 @@ def main():
         2. **Choose Processing Method**: 
            - **Standard Parsing**: Uses MarkItDown + AI agent for content extraction
            - **Content Understanding**: Uses Azure Content Understanding API for advanced analysis
-        3. **Click 'Parse Document'**: The AI will extract and organize the document content
+        3. **Enable Save to CosmosDB** (Optional): Check to automatically save parsed results to Azure Cosmos DB
+        4. **Click 'Parse Document'**: The AI will extract and organize the document content
         
         ### What You'll Get:
         - **Document Analysis**: Understanding of document type and purpose
@@ -306,6 +346,12 @@ def main():
         - **Data Extraction**: Important data points, dates, names, and entities
         - **Content Summary**: Overview of the main document content
         - **Organized Information**: Tables, lists, and structured data presented clearly
+        
+        ### CosmosDB Integration:
+        - **Automatic Save**: When enabled, parsed content is automatically saved to CosmosDB
+        - **Manual Save**: Use the "💾 Save to CosmosDB" button to save existing parsed content
+        - **Storage Format**: Saves the "sections" field from JSON output with timestamp and metadata
+        - **Container**: Uses the 'scoping' container as specified in the requirements
         
         ### Processing Methods:
         - **Standard Parsing**: Traditional text extraction using MarkItDown + AI structuring
@@ -323,12 +369,18 @@ def main():
         - `CONTENT_UNDERSTANDING_API_KEY`: Your Azure Content Understanding API key
         - `CONTENT_UNDERSTANDING_ANALYZER_ID`: Analyzer ID (optional, defaults to 'xcash_business_reg')
         
+        ### CosmosDB Environment Variables:
+        - `AZURE_COSMOS_ENDPOINT`: Your Azure Cosmos DB endpoint
+        - `AZURE_COSMOS_DATABASE`: Database name (e.g., 'pmo-agent-db')
+        - `AZURE_COSMOS_KEY`: Your Cosmos DB key (or use managed identity)
+        
         ### Use Cases:
         - Extract key information from reports
         - Structure unorganized documents
         - Parse meeting notes and minutes
         - Analyze contracts and agreements
         - Extract data from research papers
+        - Store parsed content for future analysis and retrieval
         """)
 
     # Parse button
@@ -360,6 +412,11 @@ def main():
                     st.success("✅ Document processed successfully!")
                 else:
                     st.error("❌ Failed to parse document with AI agent.")
+                    
+            # Save to CosmosDB if checkbox is enabled
+            if save_to_cosmosdb and parsed_content:
+                with st.spinner("Saving to CosmosDB..."):
+                    parser.save_to_cosmosdb(parsed_content, uploaded_file.name)
 
     # Keep the state of parsed content
     if keep_state(parsed_content, "parsed_content"):
@@ -403,9 +460,29 @@ def main():
             )
         
         with col3:
+            # Save to CosmosDB button (if not already saved during parsing)
+            if st.button("💾 Save to CosmosDB", key="save_existing_to_cosmos"):
+                if uploaded_file:
+                    with st.spinner("Saving to CosmosDB..."):
+                        parser.save_to_cosmosdb(parsed_content, uploaded_file.name)
+                else:
+                    st.error("No file information available for saving to CosmosDB")
+
+        # Summary metrics section
+        col1, col2 = st.columns(2)
+        with col1:
             # Create summary metrics
             word_count = len(parsed_content.split())
             st.metric("Content Length", f"{word_count} words")
+        
+        with col2:
+            try:
+                # Count sections if JSON format
+                parsed_json = json.loads(parsed_content)
+                sections_count = len(parsed_json.get('sections', []))
+                st.metric("Sections Found", sections_count)
+            except json.JSONDecodeError:
+                st.metric("Format", "Plain Text")
 
         # Raw extracted text section (optional)
         with st.expander("🔍 View Raw Extracted Text"):

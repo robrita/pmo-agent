@@ -1,4 +1,7 @@
 import streamlit as st
+import os
+from azure.cosmos import CosmosClient
+from azure.identity import DefaultAzureCredential
 
 def render_sidebar():
     """
@@ -69,3 +72,45 @@ def keep_state(state_object, state_name):
     elif state_name in st.session_state:
         return True
     return False
+
+# Cosmos DB Configuration and Client
+@st.cache_resource
+def get_cosmos_client(container_name=None):
+    """
+    Initialize and return Cosmos DB client, database client, or container client.
+    Uses environment variables for configuration.
+    
+    Args:
+        container_name (str, optional): If provided, returns container client for this container.
+                                      If None, returns cosmos client or database client based on usage.
+    
+    Returns:
+        CosmosClient, DatabaseProxy, or ContainerProxy: Depending on the container_name parameter
+    """
+    try:
+        # Use DefaultAzureCredential for managed identity or local development
+        credential = DefaultAzureCredential()
+        
+        cosmos_client = CosmosClient(
+            url=os.environ.get("AZURE_COSMOS_ENDPOINT"),
+            credential=credential
+        )
+        
+        # If no container name provided, return cosmos client
+        if container_name is None:
+            return cosmos_client
+            
+        # Get database client
+        database_name = os.environ.get("AZURE_COSMOS_DATABASE")
+        database_client = cosmos_client.get_database_client(database_name)
+        
+        # Return container client for the specified container
+        return database_client.get_container_client(container_name)
+        
+    except Exception as e:
+        error_msg = f"Failed to initialize Cosmos DB client"
+        if container_name:
+            error_msg += f" for container '{container_name}'"
+        error_msg += f": {e}"
+        st.error(error_msg)
+        return None
