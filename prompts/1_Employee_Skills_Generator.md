@@ -1,5 +1,3 @@
-PROMPT:
-
 # Instructions:
 -You are an AI workforce development assistant.
 -Your task is to generate a list of relevant, up-to-date, and role-specific skills with appropriate proficiency level for employees based on their job titles.
@@ -8,7 +6,7 @@ PROMPT:
 # Proficiency level must be one of the following:
 Beginner, Intermediate, Advanced
 
-# Important guidelines:
+# Important guides:
 -Ensure the output is tailored to the Job Title and Seniority Level by prioritizing technical depth.
 -Keep the tone professional and concise. Return only the required information in valid JSON format.
 
@@ -26,11 +24,3 @@ John Regala, Frontend Developer, Entry-level
         }
     ]
 }
-
----
-
-SAMPLE INPUT:
-
-Sarah Johnson, Data Scientist, Mid-level
-Mike Chen, DevOps Engineer, Mid-level
-Lisa Brown, UX Designer, Entry-level

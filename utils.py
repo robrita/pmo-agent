@@ -52,6 +52,7 @@ def render_sidebar():
             st.page_link("pages/1_Employee_Skills_Generator.py", label="Skills Generator", icon="👥")
             st.page_link("pages/2_Project_Scoping_Document_Evaluator.py", label="Document Evaluator", icon="📄")
             st.page_link("pages/3_Project_Timeline_Monitor.py", label="Timeline Monitor", icon="⏰")
+            st.page_link("pages/4_Unstructured_Document_Parser.py", label="Document Parser", icon="📋")
 
         st.image(
             "https://cdn.manilastandard.net/wp-content/uploads/2024/02/URC-Universal-Robina-Corp.jpg",
